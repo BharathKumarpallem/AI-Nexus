@@ -1,32 +1,58 @@
 import React from 'react';
 
+const ToolCard = ({ id, label, icon, items, delay }) => (
+    <div className="tool-card glass-panel scale-in" style={{ animationDelay: delay }}>
+        <div className="tool-card-glow"></div>
+        <div className="tool-header">
+            <div className="tool-icon-wrapper">
+                <span className="tool-icon">{icon}</span>
+            </div>
+            <div className="tool-title-group">
+                <h3>{label}</h3>
+                <span className="module-status">Online</span>
+            </div>
+        </div>
+        <div className="tool-content">
+            <ul className="tool-items">
+                {items.map((item, idx) => (
+                    <li key={idx}>
+                        <span className="bullet"></span>
+                        {item}
+                    </li>
+                ))}
+            </ul>
+        </div>
+        <div className="tool-footer">
+            <button className="btn btn-secondary tool-btn">
+                <span>Access Module</span>
+                <span className="btn-arrow">→</span>
+            </button>
+        </div>
+    </div>
+);
+
 export default function ToolsView() {
     const TOOLS = [
-        { id: 'file', label: 'File & Document Tools', icon: '📄', items: ['Upload PDFs & Documents', 'Extract Key Insights', 'Summarize Large Files'] },
-        { id: 'image', label: 'Image Creation Module', icon: '🎨', items: ['Generate Concept Art', 'Create UI Mockups', 'Diagram Synthesis'] },
-        { id: 'search', label: 'Global Web Search', icon: '🌐', items: ['Live News Gathering', 'Factual Summaries', 'Source Analysis'] },
-        { id: 'shopping', label: 'Shopping Research Proxy', icon: '🛒', items: ['Product Comparisons', 'Price Analysis', 'Recommendations'] }
+        { id: 'file', label: 'Neural Document Analysis', icon: '📄', items: ['Synthesize PDF Insights', 'Logic Extraction', 'Context Summarization'] },
+        { id: 'image', label: 'Ethereal Image Synthesis', icon: '🎨', items: ['Cinematic Concept Art', 'Neural UI Mockups', 'Architecture Blueprints'] },
+        { id: 'search', label: 'Global Knowledge Stream', icon: '🌐', items: ['Live Intelligence Feed', 'Factual Verification', 'Cross-Source Analysis'] },
+        { id: 'shopping', label: 'Market Intelligence', icon: '🛒', items: ['Value Handshake Protocol', 'Arbitrage Analysis', 'Smart Acquisition'] }
     ];
 
     return (
-        <div className="tools-view slide-up">
-            <h1 className="neon-text glow-pulse">AI Tool Modules</h1>
-            <p>Access specialized neural modules for high-fidelity work.</p>
+        <div className="tools-view stagger-container">
+            <div className="view-header slide-up">
+                <h1 className="neon-text glow-pulse">AI Nexus Tool Modules</h1>
+                <p className="subtitle">High-fidelity neural modules designed for complex synthesis and materialization.</p>
+            </div>
 
             <div className="tools-grid">
-                {TOOLS.map(tool => (
-                    <div key={tool.id} className="tool-card glass-panel">
-                        <div className="tool-header">
-                            <span className="tool-icon">{tool.icon}</span>
-                            <h3>{tool.label}</h3>
-                        </div>
-                        <ul className="tool-items">
-                            {tool.items.map((item, idx) => (
-                                <li key={idx}>⚡ {item}</li>
-                            ))}
-                        </ul>
-                        <button className="btn btn-primary" style={{ width: '100%', marginTop: 'auto' }}>Initialize {tool.label.split(' ')[0]}</button>
-                    </div>
+                {TOOLS.map((tool, index) => (
+                    <ToolCard
+                        key={tool.id}
+                        {...tool}
+                        delay={`${index * 0.15}s`}
+                    />
                 ))}
             </div>
         </div>
