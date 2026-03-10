@@ -21,9 +21,9 @@ SECRET_KEY = os.getenv("SECRET_KEY", "supersecretkey123")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
-# Email Envs
-SMTP_SERVER = "smtp.gmail.com"
-SMTP_PORT = 465  # Switched to SSL port for better cloud compatibility
+# Email Envs (Resilient Cloud Sync)
+SMTP_SERVER = "smtp.googlemail.com" # Using alternative endpoint for better success rates
+SMTP_PORT = 465
 SENDER_EMAIL = os.getenv("EMAIL_SENDER", "")
 SENDER_PASSWORD = os.getenv("EMAIL_PASSWORD", "")
 
@@ -99,8 +99,12 @@ def send_email_otp(recipient_email, otp):
         """
         msg.attach(MIMEText(body, 'html'))
         
-        # Using SMTP_SSL on Port 465 for direct encrypted handshake
-        server = smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT, timeout=20)
+        # Cloud-Resilient Handshake: Direct SSL with socket timeout protocol
+        logging.info(f"Initiating Neural SMTP Link to {SMTP_SERVER}:{SMTP_PORT}...")
+        server = smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT, timeout=25)
+        server.set_debuglevel(1) # This will output detailed logs to Render for us
+        
+        logging.info("Link established. Attempting Authentication...")
         server.login(SENDER_EMAIL, SENDER_PASSWORD)
         text = msg.as_string()
         server.sendmail(SENDER_EMAIL, recipient_email, text)
