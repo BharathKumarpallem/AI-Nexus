@@ -1,0 +1,30 @@
+# General
+.DS_Store
+.env
+.venv
+venv/
+env/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.db
+nexus.db
+
+# Node
+node_modules/
+dist/
+dist-ssr
+*.local
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Project specific
+ai-nexus-backend/nexus.db
+ai-nexus-backend/venv/
+ai-nexus-frontend/node_modules/
+ai-nexus-frontend/dist/
