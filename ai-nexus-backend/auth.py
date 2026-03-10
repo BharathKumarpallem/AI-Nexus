@@ -68,52 +68,50 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 MOCK_OTPS = {}
 
 def send_email_otp(recipient_email, otp):
-    if not SENDER_EMAIL or not SENDER_PASSWORD:
-        return False, "Missing EMAIL_SENDER or EMAIL_PASSWORD environment variables."
+    # FALLBACK: If BREVO_API_KEY is not set, we cannot send real emails
+    BREVO_API_KEY = os.getenv("BREVO_API_KEY", "")
+    
+    if not BREVO_API_KEY or not SENDER_EMAIL:
+        return False, "Missing BREVO_API_KEY or EMAIL_SENDER in Render settings."
         
     try:
-        msg = MIMEMultipart()
-        msg['From'] = f"AI Nexus Hub <{SENDER_EMAIL}>"
-        msg['To'] = recipient_email
-        msg['Subject'] = "🔐 Your AI Nexus Hub Verification Code"
+        # We use HTTP (Port 443) which is NEVER blocked by Render
+        import requests
+        url = "https://api.brevo.com/v3/smtp/email"
         
-        body = f"""
-        <html>
-            <body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0b0c10; padding: 40px; color: #ffffff;">
-                <div style="max-width: 500px; margin: auto; background: #1f2833; padding: 40px; border-radius: 20px; border: 1px solid #45a29e; box-shadow: 0 10px 30px rgba(0,0,0,0.5); text-align: center;">
-                    <h1 style="color: #66fcf1; margin-bottom: 20px; font-size: 28px; text-transform: uppercase; letter-spacing: 2px;">AI Nexus Hub</h1>
-                    <p style="font-size: 18px; color: #c5c6c7; line-height: 1.6;">Welcome to the future. Use the secure code below to verify your account.</p>
-                    
-                    <div style="background: rgba(102, 252, 241, 0.1); border: 2px dashed #66fcf1; padding: 25px; margin: 30px 0; border-radius: 12px;">
-                        <span style="font-size: 42px; font-weight: 800; letter-spacing: 12px; color: #66fcf1; text-shadow: 0 0 15px rgba(102, 252, 241, 0.5);">
+        payload = {
+            "sender": {"name": "AI Nexus Hub", "email": SENDER_EMAIL},
+            "to": [{"email": recipient_email}],
+            "subject": "🔐 Your AI Nexus Hub Verification Code",
+            "htmlContent": f"""
+                <div style="font-family: sans-serif; background: #0b0c10; padding: 40px; color: #fff;">
+                    <div style="max-width: 500px; margin: auto; background: #1f2833; padding: 40px; border-radius: 20px; border: 1px solid #45a29e; text-align: center;">
+                        <h1 style="color: #66fcf1;">AI Nexus Hub</h1>
+                        <p style="color: #c5c6c7;">Your secure verification code is:</p>
+                        <div style="background: rgba(102, 252, 241, 0.1); border: 2px dashed #66fcf1; padding: 20px; margin: 20px 0; font-size: 32px; font-weight: bold; color: #66fcf1; letter-spacing: 10px;">
                             {otp}
-                        </span>
+                        </div>
+                        <p style="font-size: 12px; color: #45a29e;">This code expires in 10 minutes.</p>
                     </div>
-                    
-                    <p style="font-size: 14px; color: #45a29e; margin-top: 25px;">This code will expire in 10 minutes for your security.</p>
-                    <div style="height: 1px; background: #45a29e; margin: 30px 0; opacity: 0.3;"></div>
-                    <p style="font-size: 12px; color: #c5c6c7; opacity: 0.7;">If you did not request this, please ignore this email.</p>
                 </div>
-            </body>
-        </html>
-        """
-        msg.attach(MIMEText(body, 'html'))
+            """
+        }
         
-        # Cloud-Resilient Handshake: Direct SSL with socket timeout protocol
-        logging.info(f"Initiating Neural SMTP Link to {SMTP_SERVER}:{SMTP_PORT}...")
-        server = smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT, timeout=25)
-        server.set_debuglevel(1) # This will output detailed logs to Render for us
+        headers = {
+            "accept": "application/json",
+            "content-type": "application/json",
+            "api-key": BREVO_API_KEY
+        }
         
-        logging.info("Link established. Attempting Authentication...")
-        server.login(SENDER_EMAIL, SENDER_PASSWORD)
-        text = msg.as_string()
-        server.sendmail(SENDER_EMAIL, recipient_email, text)
-        server.quit()
-        return True, "Success"
+        response = requests.post(url, json=payload, headers=headers)
+        
+        if response.status_code in [201, 200, 202]:
+            return True, "Success"
+        else:
+            return False, f"Brevo API Error: {response.text}"
+            
     except Exception as e:
-        err_msg = str(e)
-        logging.error(f"Critical SMTP Error: {err_msg}")
-        return False, err_msg
+        return False, f"Neural Materialization Error: {str(e)}"
 
 @router.post("/generate-otp")
 def generate_otp(req: OTPRequest):
