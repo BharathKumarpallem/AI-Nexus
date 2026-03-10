@@ -36,8 +36,6 @@ def get_weather(lat: float = 17.3850, lon: float = 78.4867):
     except Exception as e:
         return {"error": str(e)}
 
-from fastapi import FastAPI, Query
-# ... existing imports ...
 
 @app.post("/generate-image")
 def generate_image_api(prompt: str = Query(...)):
