@@ -69,8 +69,7 @@ MOCK_OTPS = {}
 
 def send_email_otp(recipient_email, otp):
     if not SENDER_EMAIL or not SENDER_PASSWORD:
-        logging.warning("Missing EMAIL_SENDER or EMAIL_PASSWORD environment variables.")
-        return False
+        return False, "Missing EMAIL_SENDER or EMAIL_PASSWORD environment variables."
         
     try:
         msg = MIMEMultipart()
@@ -100,36 +99,36 @@ def send_email_otp(recipient_email, otp):
         """
         msg.attach(MIMEText(body, 'html'))
         
-        # Adding a 10s timeout to prevent hanging on Render
-        server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT, timeout=10)
+        server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT, timeout=15)
+        server.ehlo()
         server.starttls()
+        server.ehlo()
         server.login(SENDER_EMAIL, SENDER_PASSWORD)
         text = msg.as_string()
         server.sendmail(SENDER_EMAIL, recipient_email, text)
         server.quit()
-        return True
+        return True, "Success"
     except Exception as e:
-        logging.error(f"Critical SMTP Error: {e}")
-        return False
+        err_msg = str(e)
+        logging.error(f"Critical SMTP Error: {err_msg}")
+        return False, err_msg
 
 @router.post("/generate-otp")
 def generate_otp(req: OTPRequest):
     otp = str(random.randint(100000, 999999))
     email = req.email
-    
-    # Store OTP using email as key now
     MOCK_OTPS[email] = otp
     
-    # Try sending real Email OTP
-    success = send_email_otp(email, otp)
+    success, error_detail = send_email_otp(email, otp)
     
     if success:
-        logging.info(f"Real Email OTP sent to {email}")
         return {"message": "OTP sent successfully via Email", "mock_otp": None}
         
-    # Fallback if no Email details
-    print(f"--- MOCK EMAIL SENT TO {email}: YOUR OTP IS {otp} ---")
-    return {"message": "Mock OTP active. Please configure EMAIL_SENDER in .env for real Emails.", "mock_otp": otp}
+    return {
+        "message": f"Email System Error: {error_detail}",
+        "mock_otp": otp,
+        "hint": "Ensure your Google App Password is correct and EMAIL_SENDER is set in Render."
+    }
 
 @router.post("/register", response_model=UserResponse)
 def register(user: UserCreate, db: Session = Depends(get_db)):
@@ -166,14 +165,11 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
     return {"access_token": access_token, "token_type": "bearer"}
 @router.post("/google-login")
 async def google_login(token_data: dict, db: Session = Depends(get_db)):
-    # This is a placeholder for actual Google token verification
-    # In a real app, you'd use google-auth to verify the ID token
     email = token_data.get("email")
     full_name = token_data.get("name")
     
     user = db.query(User).filter(User.email == email).first()
     if not user:
-        # Auto-provision user if they don't exist
         user = User(
             username=email.split("@")[0],
             email=email,
@@ -197,7 +193,6 @@ async def github_login(token_data: dict, db: Session = Depends(get_db)):
         
     user = db.query(User).filter(User.email == email).first()
     if not user:
-        # Auto-provision user if they don't exist
         user = User(
             username=token_data.get("login", email.split("@")[0]),
             email=email,
