@@ -23,7 +23,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
 # Email Envs
 SMTP_SERVER = "smtp.gmail.com"
-SMTP_PORT = 587
+SMTP_PORT = 465  # Switched to SSL port for better cloud compatibility
 SENDER_EMAIL = os.getenv("EMAIL_SENDER", "")
 SENDER_PASSWORD = os.getenv("EMAIL_PASSWORD", "")
 
@@ -99,10 +99,8 @@ def send_email_otp(recipient_email, otp):
         """
         msg.attach(MIMEText(body, 'html'))
         
-        server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT, timeout=15)
-        server.ehlo()
-        server.starttls()
-        server.ehlo()
+        # Using SMTP_SSL on Port 465 for direct encrypted handshake
+        server = smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT, timeout=20)
         server.login(SENDER_EMAIL, SENDER_PASSWORD)
         text = msg.as_string()
         server.sendmail(SENDER_EMAIL, recipient_email, text)
