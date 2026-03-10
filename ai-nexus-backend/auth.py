@@ -69,6 +69,7 @@ MOCK_OTPS = {}
 
 def send_email_otp(recipient_email, otp):
     if not SENDER_EMAIL or not SENDER_PASSWORD:
+        logging.warning("Missing EMAIL_SENDER or EMAIL_PASSWORD environment variables.")
         return False
         
     try:
@@ -99,7 +100,8 @@ def send_email_otp(recipient_email, otp):
         """
         msg.attach(MIMEText(body, 'html'))
         
-        server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
+        # Adding a 10s timeout to prevent hanging on Render
+        server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT, timeout=10)
         server.starttls()
         server.login(SENDER_EMAIL, SENDER_PASSWORD)
         text = msg.as_string()
@@ -107,7 +109,7 @@ def send_email_otp(recipient_email, otp):
         server.quit()
         return True
     except Exception as e:
-        logging.error(f"Email error: {e}")
+        logging.error(f"Critical SMTP Error: {e}")
         return False
 
 @router.post("/generate-otp")
